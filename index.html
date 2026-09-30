@@ -253,6 +253,25 @@
     .card,.box-wrap{transition:none}
   }
 </style>
+
+<style>
+#illegal-control {
+position: absolute;
+top: 0px;
+left: 0px;
+}
+
+#illegal-toggle {
+background-color: var(--night-deep);
+width: 32px;
+height: 32px;
+}
+
+.collapsed > *:not(:has(#illegal-toggle)) {
+display: hidden;
+}
+</style>
+
 </head>
 <body>
 
@@ -278,8 +297,8 @@
     <div class="seg-label">どう引く</div>
     <div class="seg" id="modeSeg" role="radiogroup" aria-label="引き方">
       <button type="button" data-mode="1" class="on" role="radio" aria-checked="true">1問ずつ</button>
-      <button type="button" data-mode="r3" role="radio" aria-checked="false">ランダム3問ずつ</button>
-      <button type="button" data-mode="k3" role="radio" aria-checked="false">関連する3問ずつ</button>
+      <button type="button" data-mode="r3" role="radio" aria-checked="false">ランダム<span class="illegal-indicator">3</span>問ずつ</button>
+      <button type="button" data-mode="k3" role="radio" aria-checked="false">関連する<span class="illegal-indicator">3</span>問ずつ</button>
     </div>
   </div>
 </header>
@@ -484,7 +503,7 @@ function renderCard(idx, single){
 
 async function draw(){
   if(busy || boxWrap.classList.contains('hidden')) return;
-  const picks = mode==='1' ? pickOne() : (mode==='r3' ? pickRandom(300) : pickBundle(3));
+  const picks = mode==='1' ? pickOne() : (mode==='r3' ? pickRandom(illegalNumber) : pickBundle(illegalNumber));
   if(!picks.length){
     if(drawn.size>=TOTAL) showComplete(); else setHint('この範囲の問いは引き終えました。範囲を変えるか、記録を消してください', true);
     return;
@@ -506,12 +525,12 @@ async function draw(){
     s.style.setProperty('--dx', `${t*spread}px`);
     s.style.setProperty('--dy', `${-95 - Math.abs(t)*-30}px`);
     s.style.setProperty('--rot', `${t*34 + (rand()*10-5)}deg`);
-    s.style.animationDelay = `${k*90}ms`;
+    s.style.animationDelay = `${k*(illegalSpeed ? 1 : 90)}ms`;
     s.innerHTML='<i></i>';
     slips.appendChild(s);
     requestAnimationFrame(()=>s.classList.add('fly'));
   });
-  await wait(900 + n*90);
+  await wait(900 + n*(illegalSpeed ? 1 : 90));
 
   // 3) reveal
   picks.forEach(i=>drawn.add(i)); saveDrawn();
@@ -637,5 +656,35 @@ $('resetLink').addEventListener('click', async ()=>{
 })();
 </script>
 
+<div id="illegal-control">
+<div><button id="illegal-toggle"></button></div>
+<div><input type="number" id="illegal-number" /></div>
+<div><label><input type="checkbox" id= "illegal-speed" switch />Shorten the drawing time</label></div>
+</div>
+
+<script>
+const illegalControlElement = document.getElementById("illegal-control");
+const illegalToggleInput = document.getElementById("illegal-toggle");
+const illegalNumberInput = document.getElementById("illegal-number");
+const illegalSpeedInput = document.getElementById("illegal-speed");
+const illegalIndicatorElements = [...document.getElementsByClassName("illegal-indicator"))];
+
+let illegalNumber = 3;
+let illegalSpeed = false;
+
+illegalNumberInput.value = String(illegalNumber);
+illegalSpeedInput.checked = illegalSpeed;
+updateIllegalIndicators();
+
+illegalToggleInput.addEventListener("click", () => { illegalControlElement.classList.toggle("collapsed") });
+
+illegalNumberInput.addEventListener("input", () => { if (illegalNumberInput.value === "") return; illegalNumber = illegalNumberInput.valueAsNumber; updateIllegalIndicators(); });
+
+illegalSpeedInput.addEventListener("change", () => { illegalSpeed = illegalSpeedInput.checked; });
+
+function updateIllegalIndicators() {
+illegalIndicatorElements.forEach((element) => { element.textContent = String(illegalNumber); });
+}
+</script>
 
 </body></html>
